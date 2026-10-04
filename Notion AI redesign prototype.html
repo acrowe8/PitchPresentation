@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Notion AI redesign prototype</title>
+<style>
+:root{--bg:#fbfbfa;--panel:#fff;--ink:#2f2f2c;--mute:#7a7872;--line:#e6e4df;--acc:#2b6cb0;--accbg:#e8f1fb;--warn:#a8531c;--warnbg:#fbeee3;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#191919;--panel:#202020;--ink:#ebe9e4;--mute:#9b9890;--line:#343330;--acc:#7fb4ec;--accbg:#223142;--warn:#f0a671;--warnbg:#3a2a1f}}
+:root[data-theme="dark"]{--bg:#191919;--panel:#202020;--ink:#ebe9e4;--mute:#9b9890;--line:#343330;--acc:#7fb4ec;--accbg:#223142;--warn:#f0a671;--warnbg:#3a2a1f}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 "Inter",system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:20px;margin:0 0 4px}
+.sub{color:var(--mute);margin:0 0 16px;max-width:60ch}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px;background:var(--panel)}
+.toggle button{border:0;background:none;color:var(--ink);padding:8px 16px;font:inherit;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--accbg);color:var(--acc);font-weight:600}
+.grid{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px}
+.page h2{font-size:26px;margin:0 0 4px}
+.meta{color:var(--mute);font-size:13px;margin-bottom:14px}
+.page h3{font-size:17px;margin:18px 0 6px}
+.page ul{margin:0;padding-left:20px}
+.page p{margin:0 0 10px}
+.task{display:flex;gap:8px;align-items:center;margin:4px 0}
+.task input{accent-color:var(--acc)}
+.messy{white-space:pre-wrap}
+.ai-head{display:flex;align-items:center;gap:8px;font-weight:600;margin-bottom:12px}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tabs button{border:0;background:none;color:var(--mute);font:inherit;padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent}
+.tabs button[aria-selected="true"]{color:var(--ink);border-color:var(--acc);font-weight:600}
+.act{display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:10px 12px;margin-bottom:8px;font:inherit;cursor:pointer}
+.act:hover{border-color:var(--acc)}
+.act small{display:block;color:var(--mute)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.chip{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accbg);border-color:var(--acc);color:var(--acc)}
+.out{background:var(--accbg);border-radius:8px;padding:12px;margin-top:10px;font-size:14px}
+.out .src{display:inline-block;margin-top:6px;font-size:12px;color:var(--acc);border:1px solid var(--acc);border-radius:4px;padding:1px 6px}
+.more{margin-top:6px;color:var(--mute);font-size:13px}
+.more summary{cursor:pointer}
+.old{max-height:420px;overflow:auto}
+.old div{padding:7px 8px;border-radius:6px;font-size:14px}
+.old div:hover{background:var(--bg)}
+.old .grp{color:var(--mute);font-size:12px;margin-top:8px;padding-bottom:0}
+.note{font-size:13px;color:var(--warn);background:var(--warnbg);border-radius:8px;padding:8px 10px;margin-top:10px}
+button:focus-visible,summary:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Notion AI: focused redesign</h1>
+<p class="sub">Leah's Bio 101 notes, before and after. Switch views to compare the AI menu she sees today with the redesign.</p>
+<div class="toggle" role="group" aria-label="View">
+<button id="vOld" aria-pressed="false">Current Notion AI</button>
+<button id="vNew" aria-pressed="true">Redesign</button>
+</div>
+<div class="grid">
+<div class="card page" id="page"></div>
+<div class="card" id="panel"></div>
+</div>
+</div>
+<script>
+var MESSY='bio 101 wk 6 - cell resp\nglycolysis in cytoplasm, makes 2 ATP\nkrebs cycle mitochondria matrix??\nETC makes most ATP ~32-34\nquiz fri!! read ch 9\nlab report due mon\nask prof about fermentation';
+var ORG='<h3>Glycolysis</h3><ul><li>Happens in the cytoplasm</li><li>Makes 2 ATP</li></ul><h3>Krebs cycle</h3><ul><li>Happens in the mitochondrial matrix (confirm)</li></ul><h3>Electron transport chain</h3><ul><li>Makes most ATP, about 32 to 34</li></ul><h3>Tasks</h3><div class="task"><input type="checkbox"> Read chapter 9</div><div class="task"><input type="checkbox"> Study for quiz (Friday)</div><div class="task"><input type="checkbox"> Finish lab report (Monday)</div><div class="task"><input type="checkbox"> Ask prof about fermentation</div>';
+var page=document.getElementById('page'),panel=document.getElementById('panel');
+var view='new',tab='Organize',tone='My voice',organized=false,result='';
+
+function renderPage(){
+ page.innerHTML='<h2>Cell respiration</h2><div class="meta">Bio 101 · Week 6</div>'+
+ (organized?ORG:'<div class="messy">'+MESSY+'</div>');
+}
+var OLD=[['Write',['Continue writing','Draft with AI','Write a blog post','Write a press release','Write a poem']],['Edit',['Improve writing','Fix spelling and grammar','Change tone','Make shorter','Make longer']],['Generate',['Summarize','Find action items','Translate','Explain this','Generate image','Brainstorm ideas']],['Other',['AI Meeting Notes','Research mode','Ask about your workspace','Autofill database','Custom AI blocks']]];
+function renderOld(){
+ var h='<div class="ai-head">✦ Notion AI</div><div class="old">';
+ OLD.forEach(function(g){h+='<div class="grp">'+g[0]+'</div>';g[1].forEach(function(i){h+='<div>'+i+'</div>';});});
+ panel.innerHTML=h+'</div><div class="note">22 options before Leah can summarize one page of notes.</div>';
+}
+function out(html){result=html;renderNew();}
+var TONES={'My voice':'The Krebs cycle takes place in the mitochondrial matrix, and the electron transport chain produces most of the ATP.','Casual':'The Krebs cycle runs in the mitochondria, then the electron transport chain cranks out most of the ATP.','Academic':'The Krebs cycle occurs within the mitochondrial matrix, while oxidative phosphorylation yields the majority of cellular ATP.','Concise':'Krebs cycle: mitochondrial matrix. Most ATP: electron transport chain.'};
+function renderNew(){
+ var h='<div class="ai-head">✦ Notion AI</div><div class="tabs" role="tablist">';
+ ['Organize','Understand','Improve'].forEach(function(t){h+='<button role="tab" aria-selected="'+(t===tab)+'" data-tab="'+t+'">'+t+'</button>';});
+ h+='</div>';
+ if(tab==='Organize'){
+  h+='<button class="act" data-do="org">Organize this page<small>Headings, bullets and tasks from messy notes</small></button>'+
+  '<button class="act" data-do="tasks">Turn notes into tasks<small>Pulls out the reading, quiz and lab report</small></button>';
+ }else if(tab==='Understand'){
+  h+='<button class="act" data-do="sum">Summarize<small>A short version of this page</small></button>'+
+  '<button class="act" data-do="key">Pull out key points<small>What to remember for Friday</small></button>'+
+  '<button class="act" data-do="ask">Ask about your workspace<small>"Where did I note the quiz date?"</small></button>';
+ }else{
+  h+='<div class="meta" style="margin-bottom:6px">Tone</div><div class="chips">';
+  Object.keys(TONES).forEach(function(t){h+='<button class="chip" aria-pressed="'+(t===tone)+'" data-tone="'+t+'">'+t+'</button>';});
+  h+='</div><button class="act" data-do="rw">Rewrite selection<small>Uses the tone above, varies sentence structure</small></button>'+
+  '<button class="act" data-do="proof">Proofread<small>Fixes spelling and grammar only</small></button>';
+ }
+ if(result)h+='<div class="out">'+result+'</div>';
+ h+='<details class="more"><summary>More AI tools</summary><div style="padding:6px 0">Meeting notes · Research · Image generation · Translate</div></details>';
+ panel.innerHTML=h;
+}
+panel.addEventListener('click',function(e){
+ var b=e.target.closest('button');if(!b)return;
+ if(b.dataset.tab){tab=b.dataset.tab;result='';renderNew();return;}
+ if(b.dataset.tone){tone=b.dataset.tone;result='';renderNew();return;}
+ var d=b.dataset['do'];if(!d)return;
+ if(d==='org'){organized=true;renderPage();out('Organized into 3 sections and 4 tasks. Review the changes on the page.');}
+ else if(d==='tasks'){out('Found 4 tasks: read chapter 9, study for Friday quiz, finish lab report by Monday, ask prof about fermentation.<br><span class="src">From: this page</span>');}
+ else if(d==='sum'){out('Cells make ATP in three stages: glycolysis, the Krebs cycle and the electron transport chain, which produces the most. A quiz is Friday and a lab report is due Monday.<br><span class="src">From: Cell respiration</span>');}
+ else if(d==='key'){out('• Glycolysis: cytoplasm, 2 ATP<br>• Electron transport chain: about 32 to 34 ATP<br>• Your note on the Krebs cycle location has "??" so check it<br><span class="src">From: Cell respiration</span>');}
+ else if(d==='ask'){out('Your quiz is Friday. You noted it on Cell respiration, Week 6.<br><span class="src">From: Cell respiration</span>');}
+ else if(d==='rw'){out('<strong>'+tone+'</strong><br>'+TONES[tone]);}
+ else if(d==='proof'){out('No spelling or grammar errors found. Shorthand like "resp" and "ETC" was left as written.');}
+});
+function setView(v){
+ view=v;result='';
+ document.getElementById('vOld').setAttribute('aria-pressed',v==='old');
+ document.getElementById('vNew').setAttribute('aria-pressed',v==='new');
+ v==='old'?renderOld():renderNew();
+}
+document.getElementById('vOld').onclick=function(){setView('old')};
+document.getElementById('vNew').onclick=function(){setView('new')};
+renderPage();renderNew();
+</script>
+</body>
+</html>
